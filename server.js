@@ -8,14 +8,14 @@ connectDB();
 
 const app = express();
 
-/* ✅ VERY IMPORTANT: SIMPLE CORS (NO CUSTOM LOGIC) */
+/* ✅ SIMPLE CORS – browser friendly */
 app.use(cors({
-  origin: '*', // allow all origins for now
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-/* ✅ MUST handle preflight */
+/* ✅ IMPORTANT – preflight handler */
 app.options('*', cors());
 
 app.use(express.json());
@@ -28,7 +28,6 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
