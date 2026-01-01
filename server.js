@@ -8,8 +8,29 @@ connectDB();
 
 const app = express();
 
+// ✅ Allowed frontend origins
+const allowedOrigins = [
+  'http://localhost:3000',   // React (CRA)
+  'http://localhost:5173'    // Vite
+  // add your deployed frontend later (Vercel/Netlify)
+];
+
+// ✅ CORS configuration
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow Postman / curl (no origin)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 // Middleware
-app.use(cors());
 app.use(express.json());
 
 // Routes
