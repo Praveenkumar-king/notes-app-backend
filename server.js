@@ -8,22 +8,21 @@ connectDB();
 
 const app = express();
 
-// ✅ SIMPLE & CORRECT CORS (IMPORTANT)
+/* ✅ VERY IMPORTANT: SIMPLE CORS (NO CUSTOM LOGIC) */
 app.use(cors({
-  origin: true,       // allow ALL origins
-  credentials: true,
+  origin: '*', // allow all origins for now
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ✅ VERY IMPORTANT (handles OPTIONS preflight)
+/* ✅ MUST handle preflight */
 app.options('*', cors());
 
 app.use(express.json());
 
-// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/notes', require('./routes/noteRoutes'));
 
-// Health check
 app.get('/', (req, res) => {
   res.send('Backend is running');
 });
