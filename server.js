@@ -8,41 +8,22 @@ connectDB();
 
 const app = express();
 
-// ✅ Allowed frontend origins
-const allowedOrigins = [
-  'http://localhost:3000',   // React (CRA)
-  'http://localhost:5173',   // Vite
-  'https://notes-app-backend-ric.onrender.com' // backend self (safe)
-];
-
-// ✅ CORS configuration (FIXED)
+// ✅ SIMPLE & CORRECT CORS (IMPORTANT)
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow Postman / curl (no origin)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: true,       // allow ALL origins
   credentials: true,
 }));
 
-// ✅ VERY IMPORTANT: handle preflight
+// ✅ VERY IMPORTANT (handles OPTIONS preflight)
 app.options('*', cors());
 
-// Middleware
 app.use(express.json());
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/notes', require('./routes/noteRoutes'));
 
-// ✅ Health check route
+// Health check
 app.get('/', (req, res) => {
   res.send('Backend is running');
 });
