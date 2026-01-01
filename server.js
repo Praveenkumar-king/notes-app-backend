@@ -11,24 +11,29 @@ const app = express();
 // ✅ Allowed frontend origins
 const allowedOrigins = [
   'http://localhost:3000',   // React (CRA)
-  'http://localhost:5173'    // Vite
-  // add your deployed frontend later (Vercel/Netlify)
+  'http://localhost:5173',   // Vite
+  'https://notes-app-backend-ric.onrender.com' // backend self (safe)
 ];
 
-// ✅ CORS configuration
+// ✅ CORS configuration (FIXED)
 app.use(cors({
   origin: function (origin, callback) {
     // Allow Postman / curl (no origin)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
+      return callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
+
+// ✅ VERY IMPORTANT: handle preflight
+app.options('*', cors());
 
 // Middleware
 app.use(express.json());
