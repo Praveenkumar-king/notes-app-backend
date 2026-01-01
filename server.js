@@ -8,11 +8,18 @@ connectDB();
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/notes', require('./routes/noteRoutes'));
+
+// ✅ Health check route
+app.get('/', (req, res) => {
+  res.send('Backend is running');
+});
 
 const PORT = process.env.PORT || 5000;
 
