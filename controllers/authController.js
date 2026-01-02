@@ -48,14 +48,10 @@ exports.login = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign(
       { id: user._id },
@@ -65,11 +61,7 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email
-      }
+      user: { id: user._id, name: user.name, email: user.email }
     });
 
   } catch (error) {
@@ -88,7 +80,6 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     user.resetPasswordToken = crypto
@@ -96,12 +87,12 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
 
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
     await user.save();
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-    // ✅ CORRECT GMAIL SMTP CONFIG
+    // ✅ SMTP CONFIG (THIS IS THE FIX)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -112,18 +103,13 @@ exports.forgotPassword = async (req, res) => {
       }
     });
 
-    // Optional but useful
-    await transporter.verify();
-    console.log('📧 Email server ready');
-
     await transporter.sendMail({
       from: `"PK Notes" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'PK Notes - Password Reset',
       html: `
         <h3>Password Reset Request</h3>
-        <p>You requested to reset your password.</p>
-        <p>Click the link below to reset:</p>
+        <p>Click the link below to reset your password:</p>
         <a href="${resetUrl}">${resetUrl}</a>
         <p>This link is valid for 15 minutes.</p>
       `
@@ -132,7 +118,7 @@ exports.forgotPassword = async (req, res) => {
     res.json({ message: 'Reset link sent to email' });
 
   } catch (error) {
-    console.error(error);
+    console.error('FORGOT PASSWORD ERROR:', error);
     res.status(500).json({ message: 'Error sending reset email' });
   }
 };
