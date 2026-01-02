@@ -13,7 +13,12 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
-  }
+  },
+
+  // 🔐 Forgot password fields
+  resetPasswordToken: String,
+  resetPasswordExpire: Date
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
