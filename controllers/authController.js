@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: 'User registered successfully' });
 
   } catch (error) {
-    console.error(error);
+    console.error('REGISTER ERROR:', error);
     res.status(500).json({ message: 'Server error during registration' });
   }
 };
@@ -61,11 +61,15 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
 
   } catch (error) {
-    console.error(error);
+    console.error('LOGIN ERROR:', error);
     res.status(500).json({ message: 'Server error during login' });
   }
 };
@@ -80,6 +84,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // 🔐 Generate token
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     user.resetPasswordToken = crypto
@@ -87,12 +92,12 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
 
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-    // ✅ SMTP CONFIG (THIS IS THE FIX)
+    // ✅ GMAIL SMTP (LOCALHOST SAFE)
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
@@ -109,7 +114,8 @@ exports.forgotPassword = async (req, res) => {
       subject: 'PK Notes - Password Reset',
       html: `
         <h3>Password Reset Request</h3>
-        <p>Click the link below to reset your password:</p>
+        <p>You requested to reset your password.</p>
+        <p>Click the link below:</p>
         <a href="${resetUrl}">${resetUrl}</a>
         <p>This link is valid for 15 minutes.</p>
       `
@@ -126,13 +132,13 @@ exports.forgotPassword = async (req, res) => {
 /* ================= RESET PASSWORD ================= */
 exports.resetPassword = async (req, res) => {
   try {
-    const resetToken = crypto
+    const resetPasswordToken = crypto
       .createHash('sha256')
       .update(req.params.token)
       .digest('hex');
 
     const user = await User.findOne({
-      resetPasswordToken: resetToken,
+      resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() }
     });
 
@@ -151,7 +157,7 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: 'Password reset successful' });
 
   } catch (error) {
-    console.error(error);
+    console.error('RESET PASSWORD ERROR:', error);
     res.status(500).json({ message: 'Error resetting password' });
   }
 };
