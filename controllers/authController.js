@@ -33,6 +33,7 @@ exports.register = async (req, res) => {
     res.status(201).json({ message: 'User registered successfully' });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error during registration' });
   }
 };
@@ -47,10 +48,14 @@ exports.login = async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
 
     const token = jwt.sign(
       { id: user._id },
@@ -60,10 +65,15 @@ exports.login = async (req, res) => {
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error during login' });
   }
 };
@@ -78,6 +88,7 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
 
     user.resetPasswordToken = crypto
@@ -85,33 +96,43 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
 
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
+    // ✅ CORRECT GMAIL SMTP CONFIG
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       }
     });
 
+    // Optional but useful
+    await transporter.verify();
+    console.log('📧 Email server ready');
+
     await transporter.sendMail({
+      from: `"PK Notes" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'PK Notes - Password Reset',
       html: `
-        <p>You requested a password reset</p>
-        <p>Click below to reset your password:</p>
+        <h3>Password Reset Request</h3>
+        <p>You requested to reset your password.</p>
+        <p>Click the link below to reset:</p>
         <a href="${resetUrl}">${resetUrl}</a>
-        <p>This link expires in 15 minutes</p>
+        <p>This link is valid for 15 minutes.</p>
       `
     });
 
     res.json({ message: 'Reset link sent to email' });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error sending reset email' });
   }
 };
@@ -144,6 +165,7 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: 'Password reset successful' });
 
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Error resetting password' });
   }
 };
