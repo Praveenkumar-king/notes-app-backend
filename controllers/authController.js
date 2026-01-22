@@ -145,7 +145,7 @@ exports.forgotPassword = async (req, res) => {
       html: emailContent
     });
 
-    res.json({ message: 'Reset link sent to email' });
+    res.json({ message: 'Reset link sent to email, Also Check Spam / Junk Folder.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error sending reset email' });
