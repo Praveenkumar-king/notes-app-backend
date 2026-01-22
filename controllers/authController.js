@@ -22,7 +22,11 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await User.create({ name, email, password: hashedPassword });
+    await User.create({
+      name,
+      email,
+      password: hashedPassword
+    });
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (err) {
@@ -41,13 +45,19 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '1d'
-    });
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
 
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email }
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error during login' });
@@ -71,21 +81,68 @@ exports.forgotPassword = async (req, res) => {
       .update(resetToken)
       .digest('hex');
 
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
     await user.save();
 
     const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; background:#f4f6fb; padding:20px;">
+        <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:10px; padding:25px;">
+
+          <h2 style="color:#4f46e5;">Hi 👋 ${user.name},</h2>
+
+          <p style="font-size:15px; color:#333;">
+            We received a request to reset your <b>PK Notes</b> account password.
+          </p>
+
+          <p style="font-size:15px; color:#333;">
+            Click the button below to securely reset your password.
+          </p>
+
+          <div style="text-align:center; margin:30px 0;">
+            <a href="${resetUrl}"
+               style="
+                 display:inline-block;
+                 padding:14px 28px;
+                 background:#4f46e5;
+                 color:#ffffff;
+                 text-decoration:none;
+                 border-radius:30px;
+                 font-weight:bold;
+               ">
+              Reset Your Password 🔐
+            </a>
+          </div>
+
+          <p style="color:#d32f2f; font-size:14px;">
+            NOTE:</b>.
+          </p>
+
+          <p style="color:#d32f2f; font-size:14px;">
+            ⏰ This link will expire in <b>15 minutes.</b>.
+          </p>
+
+          <p style="color:#555; font-size:14px;">
+            If you did not request this password reset, please ignore this email.
+          </p>
+
+          <hr style="margin:25px 0;" />
+
+          <p style="font-size:14px; color:#555;">
+            Thanks for using <b>PK Notes</b> ❤️<br/>
+            — Team PK Notes
+          </p>
+
+        </div>
+      </div>
+    `;
 
     await sgMail.send({
       to: user.email,
       from: process.env.SENDGRID_FROM_EMAIL,
       subject: 'PK Notes - Reset Your Password',
-      html: `
-        <h3>Password Reset</h3>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
-        <p>This link expires in 15 minutes.</p>
-      `
+      html: emailContent
     });
 
     res.json({ message: 'Reset link sent to email' });
